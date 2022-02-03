@@ -98,12 +98,17 @@
             listElement = document.createElement("li");
             listElement.classList.add("list-group-item");
 
+            listElement.id = `note_item_${note_object.time_created}`; //give this list item a unique id using the time_created..
+            //...this will come handy later when updating this list item
 
             headerNote = document.createElement("h4");
 
-            //to be comfortably able to pass our note object to the loadNote() function call, we need to convert it into a string
             //so we do just that belong
-            const note_object_string = JSON.stringify(note_object);
+            //we will be using the stringified format in editing very soon ...
+            // ... this format is also useful when we are trying to do some other works..
+            // ... the important thing to note here is that that, to comfortably pass objects to functions as arguments, you need to stringify them.
+            // .. you can use typecasting by using the String() method, but a more reliable way is to use JSON.stringify();
+            let note_object_string = JSON.stringify(note_object);
            
             anchorWithin = document.createElement("a");
             //anchorWithin.href = "";
@@ -111,8 +116,6 @@
 
             //give the anchorWithin an id
             anchorWithin.id = `anchor_${note_object.time_created}`;
-
-            //anchorWithin.setAttribute("onclick", `return loadNote('${note_object_string}')`);
 
             headerNote.appendChild(anchorWithin);
 
@@ -136,15 +139,28 @@
 
             //create the anchor tag within the small tag
             editAnchor = document.createElement("a");
-            editAnchor.href="#";
+            //editAnchor.href="#";
             editAnchor.innerText = "Edit Note";
             editAnchor.classList.add("edit-anchor");
+
+            //to add the edit functionality, we need a way to show the contents of the note so that we can edit it
+
+            //add the id for the editing
+            //since this id must be unique, we will use the time_created property of the note_object object to create it ...
+            // ... instead of "edit-anchor-id", we will use edit_anchor_${note_object.time_created}
+            editAnchor.id = `edit_anchor_${note_object.time_created}`;
+
 
             //create the delete anchor
             deleteAnchor = document.createElement("a");
             deleteAnchor.href = "#";
             deleteAnchor.innerText = "Delete Note";
             deleteAnchor.classList.add("delete-anchor");
+
+            //add the id for the deletion
+            //since this id must be unique, we will use the time_created property of the note_object object to create it ...
+            // ... instead of "delete-anchor-id", we will use delete_anchor_${note_object.time_created}
+            deleteAnchor.id = `delete_anchor_${note_object.time_created}`;
 
             //append the smallELement to the divELement
             divElement.appendChild(smallElement);
@@ -177,6 +193,7 @@
 
         
 
+         //Listen for when the Note title is clicked to read the note body...
          document.querySelector(`#anchor_${note_object.time_created}`).onclick = function(){
 
                 if(document.querySelector(`#body_${note_object.time_created}`).style.display == "none"){
@@ -185,7 +202,78 @@
                     document.querySelector(`#body_${note_object.time_created}`).style.display = "none";
                 }
 
+        }
+
+
+        //Listen for when the Delete Note link is clicked..
+        document.querySelector(`#delete_anchor_${note_object.time_created}`).onclick = function(event){
+
+            //confirm before deleting..
+            //we are using the confirm() in-built JavaScript function.
+            //You may use a Bootstrap Alert or Modals for this same purpose..
+            //Read about Alerts here: https://getbootstrap.com/docs/4.6/components/alerts/
+
+            check_confirmation = confirm("Do you really want to delete this note? ");
+
+            if(check_confirmation == true){
+                //delete this note..
+                // event.target.parentNode.parentNode.r
+                // event.target.previousSibling.remove();
+                // event.target.previousSibling.previousSibling.remove();
+
+                //console.log(event.target.parentNode);
+                //console.log(event.target.parentNode.parentNode);//the div that holds the Edit and Delete anchor
+                //console.log(event.target.parentNode.parentNode.parentNode); //the list item..
+
+                event.target.parentNode.parentNode.parentNode.remove();
+
+                //update the info..
+                notesInfo.innerHTML = `<div class="alert alert-danger">
+                                            Note deleted
+                                        </div>`;
+            
+                //check the number of notes left..
+                if(ulElement.children.length == 0){
+                    notesInfo.innerHTML += `<div class="alert alert-info">
+                                                You have not created any note
+                                        </div>`;
+                }
+
+
             }
+
+
+
+        }
+
+
+        //Listen for when the Edit Note Link is clicked
+        document.querySelector(`#edit_anchor_${note_object.time_created}`).onclick = function(event){
+
+            //console.log("OLD NOTE: ", note_object);
+
+            note_object_string = JSON.stringify(note_object);
+
+            //popup a simple modal for editing the note..
+
+            //As you can see, we have set the second parameter to be a callback function ...
+            //... this callback function, once its done, will return the new_note_object_string ...
+            //... this can then be parsed with JSON.parse() so thaty it replaces the old note_object
+
+            //Read more about Callback functions here: https://developer.mozilla.org/en-US/docs/Glossary/Callback_function
+            openEditNoteModal(note_object_string, function(new_note_object_string){
+
+                note_object = JSON.parse(new_note_object_string);
+
+            }); //now we are making use of the note_object_string that we created above..
+
+            
+
+
+        }
+
+
+        
             
 
         }
@@ -193,6 +281,177 @@
 
     }
 
+
+    /**
+     * This function is called when the Edit Note is clicked
+     * @param {string} note_object_string 
+     * @param {function} callbackFunction 
+     */
+    function openEditNoteModal(note_object_string, callbackFunction){
+
+        //You have seen how to use Bootstrap Modals to create popups...
+        //for this functionality, we will create our own popup instead of using that of Bootstrap
+
+        //to use our own, we will create a very simple div that holds the note title and content...
+
+        //the note_object_string parameter is a stringified data format...
+        //... to convert to the way it was which is the object, we will use JSON.parse()
+        let note_object = JSON.parse(note_object_string);
+
+        //since note_object is an object, we have access to the note_title, note_content and time_created properties...
+
+        //to get started, check if an overallEditContentDiv with the specific unique id exists, it it does, remove it first..
+        if(document.querySelector(`#overall_edit_content_div_${note_object.time_created}`)){
+            //if this exists remove it...
+            document.querySelector(`#overall_edit_content_div_${note_object.time_created}`).remove();
+        }
+
+        let overallEditContentDiv = document.createElement("div");
+        overallEditContentDiv.classList.add("col-md-6"); //so that is occupies half of the parent
+        overallEditContentDiv.classList.add("form"); //so that it behaves like bootstrap form class...
+        overallEditContentDiv.classList.add("p-4");
+        overallEditContentDiv.classList.add("mt-2");
+        overallEditContentDiv.classList.add("bg-danger");
+        overallEditContentDiv.classList.add("text-light");
+        overallEditContentDiv.id = `overall_edit_content_div_${note_object.time_created}`;//give this a unique id
+
+        //add positioning to this ...
+        overallEditContentDiv.style.position = "relative";
+
+        //create the close button
+        let closeBtn = document.createElement("btn");
+        closeBtn.classList.add("btn");
+        closeBtn.classList.add("btn-sm");
+        closeBtn.innerText = "Close";
+
+        closeBtn.style.position = "absolute";
+        closeBtn.style.right = "10px";
+        closeBtn.style.top = "10px";
+
+        closeBtn.id = `close_edit_${note_object.time_created}`;
+
+        //Read about Bootstrap 4 classes here: https://www.w3schools.com/bootstrap4/bootstrap_ref_all_classes.asp
+
+
+        //this overallEditContent will contain the note title and note content
+
+        //the editable title
+        let editTitleContent = document.createElement("textarea");
+        //put the current value inside the title 
+        editTitleContent.value = note_object.note_title;
+        editTitleContent.id = `edit_note_title_${note_object.time_created}`; //we are using time_created to create a unique id
+        editTitleContent.classList.add("form-control"); //add Bootstrap's form-control class
+
+        //the editTitle needs to be placed in a wrapper div
+        let editTitleWrapperDiv = document.createElement("div");
+
+        //this wrapperDiv should have a bootstrap class of form-group
+        editTitleWrapperDiv.classList.add("form-group");
+
+        //add a label
+        let editTitleLabel = document.createElement("label");
+        editTitleLabel.innerText = 'Edit Note Title';
+
+
+        //lets append the editTitleContent to the editTitleWrapperDiv
+        editTitleWrapperDiv.append(editTitleLabel, editTitleContent); //note the use of append() and not appendChild() ... this is ready to be appended..
+
+
+        //the editable content
+        let editContentContent = document.createElement("textarea");
+        editContentContent.value = note_object.note_content;
+        editContentContent.id = `edit_note_content_${note_object.time_created}`; //again, we are using time_created to create a unique id
+        editContentContent.classList.add("form-control"); //add Bootstrap's form-control class
+
+        //the editContent needs to be placed in a wrapper div
+        let editContentWrapperDiv = document.createElement("div");
+        editContentWrapperDiv.classList.add("form-group");
+
+        //create the label
+        editContentLabel = document.createElement("label");
+        editContentLabel.innerText = "Edit Note Content";
+
+        editContentWrapperDiv.append(editContentLabel, editContentContent); //note the use of append() and not appendChild()..this is ready to be appended to a parent node
+
+
+
+
+        //we need a save button..
+        let saveEditButton = document.createElement("button");
+        
+        //Button types are 'submit' by default, so we need to change this to the 'button' type
+        saveEditButton.type = 'button';
+
+        //we need to give this button a unique id 
+        saveEditButton.id = `edit_note_save_btn_${note_object.time_created}`; //again, we are using the time_created property to create a unique id
+
+        saveEditButton.innerText = "Save Update";
+
+        saveEditButton.classList.add("btn");
+        saveEditButton.classList.add("btn-sm");
+        saveEditButton.classList.add("btn-warning");
+
+        //put the save button inside a div
+        let saveButtonWrapperDiv = document.createElement("div");
+        saveButtonWrapperDiv.classList.add("form-group");
+
+        saveButtonWrapperDiv.appendChild(saveEditButton);
+
+
+        //put everything inside overallEditContentDiv
+        overallEditContentDiv.append(closeBtn, editTitleWrapperDiv, editContentWrapperDiv, saveButtonWrapperDiv); //again note the use of append() and not appendChild()
+        
+
+        //add overallEditContentDiv to the DOM
+        //document.body.appendChild(overallEditContentDiv);
+
+        document.querySelector(`#note_item_${note_object.time_created}`).appendChild(overallEditContentDiv);
+
+
+
+
+
+
+        //Listen for When the Close Btn for Edit Note is clicked
+        document.querySelector(`#close_edit_${note_object.time_created}`).onclick = function(event){
+            
+            //remove the edit form
+            event.target.parentNode.remove();
+
+        }
+
+
+        //Listen for When the saveEditButton is clicked
+        document.querySelector(`#edit_note_save_btn_${note_object.time_created}`).onclick = function(){
+
+            //get the updates
+            let newNoteTitle = document.querySelector(`#edit_note_title_${note_object.time_created}`)
+            let newNoteContent = document.querySelector(`#edit_note_content_${note_object.time_created}`)
+
+            if(newNoteTitle.value.trim().length != 0 && newNoteContent.value.trim().length != 0){
+
+                document.querySelector(`#anchor_${note_object.time_created}`).innerText = newNoteTitle.value.trim();
+                document.querySelector(`#body_${note_object.time_created}`).innerText = newNoteContent.value.trim();
+
+                
+                note_object.note_title = newNoteTitle.value.trim();
+                note_object.note_content = newNoteContent.value.trim();
+
+                note_object_restringified = JSON.stringify(note_object);
+
+
+
+                //Once we are done, we need a way to send the new updated note_object back to the global scope,...
+                // ...we will use callback functions for this...
+                //remember this function requires a callback function as its second argument..
+                callbackFunction(note_object_restringified);
+
+            }
+
+        }
+        
+
+    }
 
   
     /**
